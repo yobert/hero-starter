@@ -1,3 +1,4 @@
+'use strict';
 /* 
 
   The only function that is required in this file is the "move" function
@@ -80,7 +81,7 @@
 // };
 
 // // The "Safe Diamond Miner"
-var move = function(gameData, helpers) {
+/*var move = function(gameData, helpers) {
   var myHero = gameData.activeHero;
 
   //Get stats on the nearest health well
@@ -103,7 +104,120 @@ var move = function(gameData, helpers) {
     //If healthy, go capture a diamond mine!
     return helpers.findNearestNonTeamDiamondMine(gameData);
   }
+};*/
+
+var dirs = ['North', 'South', 'East', 'West'];
+var deltas = [[-1, 0], [1, 0], [0, 1], [0, -1]];
+var opposites = [1, 0, 3, 2];
+
+function valid(board, distanceFromTop, distanceFromLeft) {
+  return (!(distanceFromTop < 0 || distanceFromLeft < 0 ||
+      distanceFromTop > board.lengthOfSide - 1 || distanceFromLeft > board.lengthOfSide - 1));
+}
+
+function around(board, r, c, cb) {
+  var delta, x, y;
+  for(var di = 0; di < 4; di++) {
+    delta = deltas[di];
+    x = r + delta[0];
+    y = c + delta[1];
+    if(valid(board, x, y)) {
+      cb(board.tiles[x][y], x, y, di);
+    }
+  }
+}
+
+function pathable(tile) {
+  if(tile.type == 'Unoccupied')
+    return true;
+  return false;
+}
+
+function all(board, cb) {
+  var i, j, t;
+  for(i = 0; i < board.lengthOfSide; i++) {
+    for(j = 0; j < board.lengthOfSide; j++) {
+      t = board.tiles[i][j];
+      cb(t, i, j);
+    }
+  }
+}
+
+var move = function(game, helpers) {
+  var me = game.activeHero;
+  var i, j, a, t;
+
+  var tl = [];
+  for(i = 0; i < game.board.lengthOfSide; i++) {
+      a = [];
+      for(j = 0; j < game.board.lengthOfSide; j++) {
+        a.push('.');
+      }
+      tl.push(a);
+  }
+
+  var queue = [];
+
+  all(game.board, function(t, x, y) {
+    if(t.type == 'Hero' && t.team != me.team) {
+      tl[x][y] = 0;
+
+      around(game.board, x, y, function(atile, ax, ay) {
+        if(pathable(atile) && tl[ax][ay] == '.')
+          queue.push([ax, ay]);
+      });
+    }
+  });
+
+  var e = 0;
+
+  while(queue.length) {
+    e++;
+    var xy = queue.shift();
+    var totalthreat = '.';
+    around(game.board, xy[0], xy[1], function(atile, ax, ay) {
+      var v = tl[ax][ay];
+      if(v != '.') {
+        if(totalthreat == '.')
+           totalthreat = v;
+        else
+           totalthreat += v;
+      }
+    });
+
+    if(totalthreat != '.') {
+      tl[xy[0]][xy[1]] = totalthreat - 1;
+      around(game.board, xy[0], xy[1], function(atile, ax, ay) {
+        if(pathable(atile) && tl[ax][ay] == '.') {
+          queue.push([ax, ay]);
+        }
+      });
+    }
+  }
+
+  //console.log(tl);
+
+  var bestvalue;
+  var bestxy;
+  var bestdir;
+
+  around(game.board, me.distanceFromTop, me.distanceFromLeft, function(atile, ax, ay, ad) {
+    var v = tl[ax][ay];
+    if(v != '.') {
+      if(!bestxy || v < bestvalue) {
+        bestxy = [ax, ay];
+        bestvalue = v;
+        bestdir = ad;
+      }
+    }
+  });
+
+  if(!bestxy)
+    bestdir = Math.floor(Math.random() * 4);
+
+  return dirs[bestdir];
 };
+
 
 // // The "Selfish Diamond Miner"
 // // This hero will attempt to capture diamond mines (even those owned by teammates).
