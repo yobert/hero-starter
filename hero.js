@@ -64,7 +64,7 @@ function threat_map(game) {
 		xy = queue.shift();
 
 		around(game.board, xy[0], xy[1], function(atile, ax, ay) {
-			if((atile.type == 'Unoccupied' || atile.type == 'Hero') && !tl[ax][ay].edone) {
+			if((atile.type == 'Unoccupied' || atile.type == 'HealthWell') && !tl[ax][ay].edone) {
 				v = -1;
 				around(game.board, ax, ay, function(atile, ax, ay) {
 					var ed = tl[ax][ay].ed;
@@ -77,7 +77,9 @@ function threat_map(game) {
 				if(v != -1) {
 					tl[ax][ay].ed = v + 1;
 					tl[ax][ay].edone = true;
-					queue.push([ax, ay]);
+					if(atile.type == 'Unoccupied') {
+						queue.push([ax, ay]);
+					}
 				}
 			}
 		});
@@ -171,17 +173,26 @@ var move = function(game, helpers) {
 
 	var tl = threat_map(game);
 
-	// find the least dangerous route to the
-	// least dangerous place on the map.
-
 	var lv = 0;
 	var lx = 0;
 	var ly = 0;
 	all(game.board, function(t, x, y) {
-		if(tl[x][y].edone && tl[x][y].ed > lv) {
-			lv = tl[x][y].ed;
-			lx = x;
-			ly = y;
+		if(tl[x][y].edone) {
+			var v = tl[x][y].ed;
+			if(me.health < 100) {
+				if(t.type == 'HealthWell') {
+					v += 10;
+				}
+			} else {
+				if(t.type == 'Unoccupied' && t.subType == 'Bones') {
+					v += 7;
+				}
+			}
+			if(v > lv) {
+				lv = v;
+				lx = x;
+				ly = y;
+			}
 		}
 	});
 
