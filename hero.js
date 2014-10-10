@@ -1,5 +1,3 @@
-'use strict';
-
 var dirchars = ['^', 'v', '>', '<'];
 var dirs = ['North', 'South', 'East', 'West'];
 var deltas = [[-1, 0], [1, 0], [0, 1], [0, -1]];
@@ -66,7 +64,7 @@ function threat_map(game) {
 		xy = queue.shift();
 
 		around(game.board, xy[0], xy[1], function(atile, ax, ay) {
-			if(atile.type == 'Unoccupied' && !tl[ax][ay].edone) {
+			if((atile.type == 'Unoccupied' || atile.type == 'Hero') && !tl[ax][ay].edone) {
 				v = -1;
 				around(game.board, ax, ay, function(atile, ax, ay) {
 					var ed = tl[ax][ay].ed;
@@ -187,7 +185,8 @@ var move = function(game, helpers) {
 		}
 	});
 
-	debug_threat_map(tl);
+	//debug_threat_map(tl);
+	//console.log("threat level", tl[me.distanceFromTop][me.distanceFromLeft].ed);
 
 	//var d = path_map(game.board, me.distanceFromTop, me.distanceFromLeft, lx, ly);
 
